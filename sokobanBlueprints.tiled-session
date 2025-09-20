@@ -1,0 +1,60 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "res/testLevel.tmx",
+    "expandedProjectPaths": [
+        "res",
+        "."
+    ],
+    "file.lastUsedOpenFilter": "All Files (*)",
+    "fileStates": {
+        "res/testLevel.tmx": {
+            "expandedObjectLayers": [
+                2
+            ],
+            "scale": 2,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 267,
+                "y": 261.5
+            }
+        },
+        "res/tilemap.tmx": {
+            "expandedObjectLayers": [
+                5
+            ],
+            "scale": 1.5,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 112,
+                "y": -16
+            }
+        },
+        "res/tileset.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1.5,
+            "scaleInEditor": 3
+        }
+    },
+    "last.externalTilesetPath": "C:/Users/eatyb/cppgames/basic-raylib/res",
+    "last.imagePath": "C:/Users/eatyb/cppgames/basic-raylib/res",
+    "map.fixedSize": false,
+    "map.lastUsedFormat": "tmx",
+    "map.layerDataFormat": "4",
+    "openFiles": [
+        "res/tilemap.tmx",
+        "res/tileset.tsx",
+        "res/testLevel.tmx"
+    ],
+    "project": "sokobanBlueprints.tiled-project",
+    "property.type": "bool",
+    "recentFiles": [
+        "res/tilemap.tmx",
+        "res/tileset.tsx",
+        "res/testLevel.tmx"
+    ],
+    "tileset.lastUsedFilter": "Tiled tileset files (*.tsx *.xml)",
+    "tileset.lastUsedFormat": "tsx"
+}

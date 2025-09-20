@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="32" tileheight="32" infinite="1" nextlayerid="4" nextobjectid="5">
+ <tileset firstgid="1" source="tileset.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="30" height="20">
+  <data encoding="base64" compression="zlib">
+   <chunk x="0" y="0" width="16" height="16">
+   eJxjYmBgYMKCmdEwNjX48EDoR9eDCxOrnwWKydVPjP3Y5LHZiU0MFx5K+od6/A2m9E+OfgBJiwKh
+  </chunk>
+  </data>
+ </layer>
+ <objectgroup id="2" name="Object Layer 1">
+  <object id="1" type="Box" gid="6" x="160" y="384" width="32" height="32"/>
+  <object id="2" type="Box" gid="6" x="416" y="288" width="32" height="32"/>
+  <object id="3" type="Box" gid="6" x="224" y="96" width="32" height="32"/>
+ </objectgroup>
+ <layer id="3" name="CollisionMap" class="CollisionMap" width="30" height="20">
+  <data encoding="base64" compression="zlib">
+   <chunk x="0" y="0" width="16" height="16">
+   eJxjYBgFuAAjFA+EvcSIDVf91AIDFX9DCQAAHBgADQ==
+  </chunk>
+  </data>
+ </layer>
+</map>

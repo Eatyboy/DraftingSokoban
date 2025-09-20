@@ -1,0 +1,47 @@
+cmake_minimum_required(VERSION 3.13)
+
+set(CMAKE_CXX_STANDARD 20)
+
+option(PROD_BUILD "Makes this a production build" OFF)
+
+if (MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "Multithreaded$<$<CONFIG:Release>:Release>")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "Multithreaded$<$<CONFIG:Debug>:DebugRelease>")
+    add_compile_options(/arch:AVX2)
+endif()
+
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries" FORCE)
+
+project(BasicRaylib)
+
+add_subdirectory(lib/raylib)
+set(TMXLITE_STATIC_LIB ON CACHE BOOL "Build tmxlite as static" FORCE)
+add_subdirectory(lib/tmxlite)
+
+file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+
+add_executable("${CMAKE_PROJECT_NAME}")
+
+set_property(TARGET "${CMAKE_PROJECT_NAME}" PROPERTY CXX_STANDARD 20)
+
+if (PROD_BUILD)
+	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC PROD_BUILD=1)
+else()
+	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC PROD_BUILD=0)
+endif()
+
+target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC RESOURCES_PATH="./res/")
+
+add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/res"               # source folder
+    "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/res"  # destination folder
+    COMMENT "Copying resources folder to output directory"
+)
+
+target_sources("${CMAKE_PROJECT_NAME}" PRIVATE ${MY_SOURCES})
+
+target_include_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+
+target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE raylib tmxlite)

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="32" tileheight="32" infinite="1" nextlayerid="9" nextobjectid="10">
+ <tileset firstgid="1" source="tileset.tsx"/>
+ <layer id="1" name="Default" width="30" height="20">
+  <data encoding="base64" compression="zlib">
+   <chunk x="-16" y="-16" width="16" height="16">
+   eJxjYBgFo2BkAhYK9dJbPwsaZqWCfgAZmAA/
+  </chunk>
+   <chunk x="0" y="-16" width="16" height="16">
+   eJxjYBgFo4D6gAWKCQFWNMyChmmlHyZPSD8zFONiE9KPrBYbZkLD+NQiYxggpJ8QAADqQAEO
+  </chunk>
+   <chunk x="16" y="-16" width="16" height="16">
+   eJxjYBgFo2DoAhYq6IdhZjL0M2PBlOinNwAAKCwALw==
+  </chunk>
+   <chunk x="-16" y="0" width="16" height="16">
+   eJxjYCAesAIxCxSzQjEpgBULHtVPP/3I5oyCUQACABvyALM=
+  </chunk>
+   <chunk x="0" y="0" width="16" height="16">
+   eJxjYmBgYELCzGiYEGCFYkr1I2MGIvXi008sGGz6yQHk6hsFowAAL24Arw==
+  </chunk>
+  </data>
+ </layer>
+ <objectgroup id="5" name="Object Layer 1">
+  <object id="7" type="Box" gid="6" x="0" y="32" width="32" height="32"/>
+  <object id="8" type="Box" gid="6" x="96" y="-32" width="32" height="32"/>
+ </objectgroup>
+ <layer id="4" name="Collision" class="CollisionMap" width="30" height="20" visible="0">
+  <data encoding="base64" compression="zlib">
+   <chunk x="-16" y="-16" width="16" height="16">
+   eJxjYBgFo4A8wDiqn2T16JhWdhGrHwANgAAN
+  </chunk>
+   <chunk x="0" y="-16" width="16" height="16">
+   eJxjYBgFo4CBgRGKydVHrv5RMLAAAA7UAAc=
+  </chunk>
+  </data>
+ </layer>
+</map>
