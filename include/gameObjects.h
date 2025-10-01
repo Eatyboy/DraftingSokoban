@@ -6,7 +6,7 @@
 #include <string>
 
 #include <tiles.h>
-#include <int2.h>
+#include <utils.h>
 
 class Tilemap;
 
@@ -18,7 +18,7 @@ enum class ObjectType {
 struct ObjectData {
     Int2 position = Int2::zero;
     Int2 size = Int2::zero;
-    Vector2 offset = Vector2{ 0, 0 };
+    Vec2 offset = Vec2::zero;
     ObjectType type;
     uint32_t tileGID = 0;
     float rotation = 0.0f;

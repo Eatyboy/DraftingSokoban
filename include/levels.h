@@ -1,7 +1,7 @@
 #pragma once
 
 #include <tiles.h>
-#include <int2.h>
+#include <utils.h>
 #include <gameObjects.h>
 
 #include <unordered_set>
@@ -28,4 +28,4 @@ struct Level {
     Int2 size = Int2::zero;
 };
 
-std::unique_ptr<Level> LoadLevel(const char* filename);
+Level* LoadLevel(const char* filename);

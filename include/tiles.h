@@ -5,16 +5,14 @@
 #include <tmxlite/TileLayer.hpp>
 #include <tmxlite/ObjectGroup.hpp>
 #include <tmxlite/Object.hpp>
-#include <raylib.h>
-#include <int2.h>
+#include <utils.h>
+#include <glad.h>
+#include <GLFW/glfw3.h>
 
 struct TileInfo {
-    const tmx::Tileset* tileset = nullptr;
     const tmx::Tileset::Tile* tile = nullptr;
-
+    size_t tilesetIndex = 0;
     uint32_t GID = 0;
-    Rectangle texCoords;
-    const Texture2D* texture = nullptr;
 
     std::vector<tmx::Property> props;
 };
@@ -27,5 +25,5 @@ struct Chunk {
 
 struct ChunkLayer {
     std::vector<Chunk> chunks;
-    Vector2 offset;
+    Vec2 offset;
 };

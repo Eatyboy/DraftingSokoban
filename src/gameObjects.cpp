@@ -1,5 +1,4 @@
 #include <gameObjects.h>
-#include <raymath.h>
 #include <utils.h>
 
 ObjectType stringToObjectType(const std::string& str) {
@@ -23,12 +22,12 @@ void Push(Pushable& pushable, Int2 direction) {
 void UpdatePushable(Pushable& pushable, ObjectData& object, float dt) {
     if (pushable.isMoving) {
         pushable.move_t += dt;
-        object.offset = Vector2Scale((pushable.moveDelta * object.size).toVector2(), Smoothstep(pushable.move_t));
+        object.offset = Vec2(pushable.moveDelta * object.size) * Smoothstep(pushable.move_t);
         if (pushable.move_t >= 1.0f) {
             pushable.move_t = 0.0f;
             pushable.isMoving = false;
             object.position += pushable.moveDelta;
-            object.offset = Vector2{ 0, 0 };
+            object.offset = Vec2::zero;
         }
     }
 }

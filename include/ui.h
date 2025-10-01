@@ -1,13 +1,40 @@
 #pragma once
 
 #include <vector>
-#include <raylib.h>
 #include <memory>
 #include <stdint.h>
 #include <utils.h>
-#include <raymath.h>
+#include <functional>
+#include <string>
+#include <renderer.h>
+#include <algorithm>
+#include <text.h>
 
 namespace UI {
+	struct MouseState {
+		Vec2 mousePos = { 0, 0 };
+        bool leftDown = false;
+        bool leftPressed = false;
+        bool leftUp = false;
+        bool leftReleased = false;
+        bool rightDown = false;
+        bool rightPressed = false;
+        bool rightUp = false;
+        bool rightReleased = false;
+	};
+
+    enum class PositionMode {
+        RELATIVE,
+        ABSOLUTE,
+    };
+
+    struct Position {
+        Vec2 position = { 0, 0 };
+        PositionMode mode = PositionMode::RELATIVE;
+    };
+
+    static inline Position Absolute(Vec2 position) { return Position{ position, PositionMode::ABSOLUTE}; }
+
     enum class FlexDir {
         ROW,
         COLUMN,
@@ -34,115 +61,231 @@ namespace UI {
 
     struct Sizing {
         SizingMode mode = SizingMode::FIT;
-        Vector2 size = { 0, 0 };
+        float value;
     };
 
-    static inline Sizing Fit(Vector2 size) { return {SizingMode::FIT, size}; }
-    static inline Sizing Grow(Vector2 size) { return {SizingMode::GROW, size}; }
-    static inline Sizing Percent(Vector2 size) { return { SizingMode::PERCENT, Vector2ClampValue(size, 0.0f, 1.0f) }; }
-    static inline Sizing Fixed(Vector2 size) { return { SizingMode::FIXED, size }; }
-    static inline Sizing Fit(float width, float height) { return Fit({ width, height }); }
-    static inline Sizing Grow(float width, float height) { return Grow({ width, height }); }
-    static inline Sizing Percent(float width, float height) { return Percent({ width, height }); }
-    static inline Sizing Fixed(float width, float height) { return Fixed({ width, height }); }
-    static inline Sizing Fit() { return Fit(0, 0); }
-    static inline Sizing Grow() { return Grow(0, 0); }
+    struct Dim {
+        Sizing width;
+        Sizing height;
+    };
+
+    static inline Sizing Fit(float size) { return {SizingMode::FIT, size}; }
+    static inline Sizing Grow(float size) { return {SizingMode::GROW, size}; }
+    static inline Sizing Percent(float size) { return { SizingMode::PERCENT, std::clamp(size, 0.0f, 1.0f) }; }
+    static inline Sizing Fixed(float size) { return { SizingMode::FIXED, size }; }
+    static inline Sizing Fit() { return Fit(0); }
+    static inline Sizing Grow() { return Grow(0); }
 
     struct Spacing {
         float left = 0;
         float top = 0;
         float right = 0;
         float bottom = 0;
-
-        Spacing() = default;
-        Spacing(float value) : left(value), top(value), right(value), bottom(value) {}
-        Spacing(int value) : left((float)value), top((float)value), right((float)value), bottom((float)value) {}
     };
 
+    static inline Spacing Margin(float margin) { return Spacing{ margin, margin, margin, margin }; }
+    static inline Spacing Padding(float padding) { return Spacing{ padding, padding, padding, padding }; }
+
     struct Style {
+        Texture image;
+
+        Dim sizing = { Fit(), Fit() };
+        Spacing padding;
+        Spacing margin;
+
+        Position positioning;
         FlexDir flexDir = FlexDir::ROW;
         AlignX alignX = AlignX::LEFT;
         AlignY alignY = AlignY::TOP;
-        Sizing sizing = Fit({ 0, 0 });
-        Color backgroundColor = GRAY;
         float childGap = 0;
-        Spacing padding;
-        Spacing margin;
+
         float roundness = 0;
+        Color backgroundColor = GRAY;
+
         float borderWidth = 0;
         Color borderColor = DARKGRAY;
+
+        Font* font = nullptr;
+        float fontSize = 24;
+        Color textColor = BLACK;
+        float fontSpacing = 2;
+        bool isWrap = false;
     };
+
+    constexpr float rounded_sm = 2.0f;
+    constexpr float rounded = 4.0f;
+	constexpr float rounded_md = 6.0f;
+	constexpr float rounded_lg = 8.0f;
+	constexpr float rounded_xl = 12.0f;
+	constexpr float rounded_2xl = 16.0f;
+	constexpr float rounded_3xl = 24.0f;
+    constexpr float rounded_full = -1.0f;
 
     struct Element {
         Element* parent = nullptr;
         std::vector<Element*> children;
 
-        Vector2 position = { 0, 0 };
-        Vector2 size = { 0, 0 };
+        Vec2 position = Vec2::zero;
+        Vec2 size = Vec2::zero;
         Style style;
-        const char* label = nullptr;
-        bool isLeaf = false;
+        std::string label;
+        uint64_t id = 0;
 
-        inline Rectangle GetRect() const {
-            return Rectangle{
+        std::function<void(Element&)> onHover = nullptr;
+        std::function<void(Element&)> onActive = nullptr;
+        std::function<void(Element&)> onClick = nullptr;
+
+        inline float width() const { return size.x; }
+        inline float height() const { return size.y; }
+
+        inline Rect GetRect() const {
+            return Rect{
                 position.x,
                 position.y,
                 size.x,
                 size.y
             };
         }
+
+        inline bool isText() const {
+            return style.font != nullptr;
+        }
     };
 
-    inline uint64_t HashID(uint64_t seed, const char* str) {
-        uint64_t hash = seed ? seed : 1469598103934665603ull;
-        while (*str) {
-            hash ^= (unsigned char)(*str++);
+	struct Callbacks {
+		const char* label = nullptr;
+		std::function<void(Element&)> onHover = nullptr;
+		std::function<void(Element&)> onActive = nullptr;
+		std::function<void(Element&)> onClick = nullptr;
+	};
+
+    struct PanelStyle {
+        Texture image;
+
+        Dim sizing = { Fit(), Fit() };
+        Spacing padding;
+        Spacing margin;
+
+        Position positioning;
+        FlexDir flexDir = FlexDir::ROW;
+        AlignX alignX = AlignX::LEFT;
+        AlignY alignY = AlignY::TOP;
+        float childGap = 0;
+
+        float roundness = 0;
+        Color backgroundColor = WHITE;
+
+        float borderWidth = 0;
+        Color borderColor = DARKGRAY;
+
+        bool isActive = true;
+
+        inline Style toStyle() const {
+            return Style{
+                .image = image,
+                .sizing = sizing,
+                .padding = padding,
+                .margin = margin,
+                .positioning = positioning,
+                .flexDir = flexDir,
+                .alignX = alignX,
+                .alignY = alignY,
+                .childGap = childGap,
+                .roundness = roundness,
+                .backgroundColor = backgroundColor,
+                .borderWidth = borderWidth,
+                .borderColor = borderColor,
+            };
+        }
+    };
+
+    struct TextStyle {
+        Font* font = nullptr;
+        float fontSize = 24;
+        Color textColor = BLACK;
+        float fontSpacing = 2;
+        bool isWrap = true;
+
+        Position positioning;
+        AlignX alignX = AlignX::LEFT;
+        AlignY alignY = AlignY::TOP;
+        Spacing margin;
+
+        bool isActive = true;
+
+        inline Style toStyle() const {
+            return Style{
+                .sizing = { Grow(), Fixed(0) },
+                .margin = margin,
+                .positioning = positioning,
+                .alignX = alignX,
+                .alignY = alignY,
+                .font = font,
+                .fontSize = fontSize,
+                .textColor = textColor,
+                .isWrap = isWrap,
+            };
+        }
+    };
+
+    inline uint64_t GetElementID(const char* label, Element* parent) {
+        uint64_t hash = 1469598103934665603ull;
+        while (*label) {
+            hash ^= (unsigned char)(*label++);
             hash *= 1099511628211ull;
         }
-        return hash;
+        return hash ^ reinterpret_cast<uintptr_t>(parent);
+    }
+
+    inline void AddCallbacks(Element* element, Callbacks callbacks) {
+        if (element == nullptr) return;
+        if (callbacks.label == nullptr) return;
+
+		element->id = GetElementID(callbacks.label, element->parent);
+		element->onHover = callbacks.onHover;
+        element->onActive = callbacks.onActive;
+		element->onClick = callbacks.onClick;
     }
 }
 
-struct MouseState {
-    Vector2 mousePos = { 0, 0 };
-    bool mouseLeftDown = false;
-    bool mouseLeftUp = false;
-};
-
 class UIContext {
 public:
+    Vec2 screenSize = Vec2::zero;
     UI::Element* root = nullptr;
-    UI::Element* current = nullptr;
     uint64_t hotID = 0;
     uint64_t activeID = 0;
 
-    UIContext(size_t arenaSize = sizeof(UI::Element) * 256) : elementArena(arenaSize) {}
+    UIContext(size_t arenaSize = sizeof(UI::Element) * 256) : elementArena(arenaSize) {
+        static Font defaultfont = GetDefaultFont();
+		this->defaultFont = defaultFont; 
+    }
 
-    uint64_t PushID(const char* str);
-    uint64_t PopID();
-    uint64_t GetID(const char* str);
-
-    void BeginUI(MouseState currentFrameMouseState);
+    void BeginUI(Vec2 currentScreenSize, UI::MouseState currentFrameMouseState, UI::FlexDir rootFlexDir = UI::FlexDir::ROW);
     void EndUI();
 
-    void ComputeLayout(UI::Element* element);
     void Render(UI::Element* element);
     void Render();
 
-    template <typename Fn>
-    void Panel(Vector2 position, const UI::Style& style, Fn children) {
-        OpenElement(position, style);
-        children();
-        CloseElement();
-    }
-    bool Button(const char* label, Vector2 position, const UI::Style& style);
+    void Panel(const UI::PanelStyle& style);
+    void Panel(const UI::PanelStyle& style, const std::function<void()> children);
+    void Panel(const UI::PanelStyle& style, UI::Callbacks callbacks);
+    void Panel(const UI::PanelStyle& style, UI::Callbacks callbacks, const std::function<void()> children);
+    void Text(std::string text, const UI::TextStyle& style);
 private:
     Arena elementArena;
-    std::vector<UI::Element*> stack;
-    MouseState mouseState;
+    UI::MouseState mouseState;
     bool isContextActive = false;
+    Font* defaultFont = nullptr;
     std::vector<uint64_t> idStack;
+    std::vector<UI::Element*> elementStack;
 
-    void OpenElement(Vector2 position, const UI::Style& style = {});
+    void OpenElement(const UI::Style& style = {});
     void CloseElement();
+
+    void FitHeights(UI::Element* element);
+    void WrapText();
+    void GrowWidths();
+    void GrowHeights();
+    void LayoutElements();
+    void ResolveCallbacks();
 };

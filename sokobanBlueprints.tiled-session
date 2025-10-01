@@ -14,11 +14,11 @@
             "expandedObjectLayers": [
                 2
             ],
-            "scale": 2,
+            "scale": 1.5,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 267,
-                "y": 261.5
+                "x": 334.66666666666674,
+                "y": 184
             }
         },
         "res/tilemap.tmx": {
@@ -28,8 +28,8 @@
             "scale": 1.5,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 112,
-                "y": -16
+                "x": 256.3333333333333,
+                "y": -0.3333333333333144
             }
         },
         "res/tileset.tsx": {

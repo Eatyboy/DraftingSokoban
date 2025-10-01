@@ -1,6 +1,6 @@
 #include <levels.h>
 
-std::unique_ptr<Level> LoadLevel(const char* filename) {
+Level* LoadLevel(const char* filename) {
     tmx::Map map;
     
     if (!map.load(filename)) {
@@ -8,7 +8,7 @@ std::unique_ptr<Level> LoadLevel(const char* filename) {
         return nullptr;
     }
 
-    auto newLevel = std::make_unique<Level>();
+    Level* newLevel = new Level{};
 
     Int2 tileSize(map.getTileSize());
 
@@ -29,7 +29,7 @@ std::unique_ptr<Level> LoadLevel(const char* filename) {
                 newLevel->objects.push_back(ObjectData{
                     position,
                     tileSize,
-                    Vector2{ 0, 0 },
+                    Vec2::zero,
                     objType,
                     tileID,
                     object.getRotation(),
@@ -74,7 +74,7 @@ std::unique_ptr<Level> LoadLevel(const char* filename) {
 
                 newLevel->size = maxCorner - minCorner;
 
-                Vector2 offset = Vector2{
+                Vec2 offset = Vec2{
                     (float)tileLayer.getOffset().x,
                     (float)tileLayer.getOffset().y
                 };

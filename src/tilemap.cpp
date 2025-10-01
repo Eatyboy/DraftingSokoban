@@ -1,20 +1,63 @@
 #include <tilemap.h>
-#include <raylib.h>
-#include <raymath.h>
 #include <iostream>
 #include <algorithm>
 #include <iterator>
+#include <renderer.h>
+#include <glad.h>
 
-Tilemap::Tilemap() {
-    tileSize = Int2::zero;
-}
+constexpr int MAX_TILES = 100000;
 
-Tilemap::Tilemap(const char* filename) {
+struct TileInstance {
+	Vec2 worldPos;
+	uint32_t tileIndex;
+};
+
+bool Tilemap::LoadTilemap(const char* filename) {
     tmx::Map map;
     if (!map.load(filename)) {
         std::string msg = "Error: Failed to load tilemap from \"" + std::string(filename) + "\"\n";
-        throw std::runtime_error(msg);
+        return false;
     }
+
+    float quadVertices[] = {
+        1.0f, 0.0f,     1.0f, 0.0f, // top right
+        1.0f, 1.0f,     1.0f, 1.0f, // bottom right
+        0.0f, 1.0f,     0.0f, 1.0f, // bottom left
+        0.0f, 0.0f,     0.0f, 0.0f  // top left
+    };
+
+    unsigned int quadIndices[] = {
+        0, 1, 3,
+        1, 2, 3
+    };
+
+    glGenVertexArrays(1, &tileVAO);
+    glGenBuffers(1, &quadVBO);
+    glGenBuffers(1, &quadEBO);
+    glGenBuffers(1, &tileVBO);
+
+    glBindVertexArray(tileVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadIndices), quadIndices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ARRAY_BUFFER, tileVBO);
+    glBufferData(GL_ARRAY_BUFFER, MAX_TILES * sizeof(TileInstance), nullptr, GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(TileInstance), (void*)0);
+    glVertexAttribIPointer(3, 1, GL_FLOAT, sizeof(TileInstance), (void*)(offsetof(TileInstance, tileIndex)));
+    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
+    glVertexAttribDivisor(2, 1);
+    glVertexAttribDivisor(3, 1);
 
     tileSize = Int2((int)map.getTileSize().x, (int)map.getTileSize().y);
 
@@ -41,7 +84,7 @@ Tilemap::Tilemap(const char* filename) {
                 objects.push_back(ObjectData{
                     position,
                     tileSize,
-                    Vector2{ 0, 0 },
+                    Vec2{ 0, 0 },
                     objType,
                     tileID,
                     object.getRotation(),
@@ -75,7 +118,7 @@ Tilemap::Tilemap(const char* filename) {
                         chunk.tiles
                     });
                 }
-                Vector2 offset = Vector2{
+                Vec2 offset = Vec2{
                     (float)tileLayer.getOffset().x,
                     (float)tileLayer.getOffset().y
                 };
@@ -86,43 +129,34 @@ Tilemap::Tilemap(const char* filename) {
 
     const auto& tilesets = map.getTilesets();
 
-    if (tilesets.empty()) return;
+    if (tilesets.empty()) return false;
 
     uint32_t maxGID = tilesets.back().getLastGID();
     size_t newSize = static_cast<size_t>(maxGID) + 1;
-    tileLookup.resize(newSize, TileInfo{ nullptr, nullptr });
+    tileLookup.resize(newSize, {});
 
     for (const auto& tileset : tilesets) {
         uint32_t first = tileset.getFirstGID();
         uint32_t count = tileset.getTileCount();
 
         std::string texPath = tileset.getImagePath();
-        Texture2D texture = LoadTexture(texPath.c_str());
+        Texture texture = LoadTexture(texPath.c_str());
 
-        if (texture.id == NULL) {
-            continue;
-        }
-
-        textures[texPath] = texture;
+        tilesetLookup.push_back(TilesetLookup{ tileset, first, first + count, texture });
 
         for (uint32_t i = 0; i < count; ++i) {
             const tmx::Tileset::Tile* tile = tileset.getTile(i);
             if (tile == nullptr) continue;
             tileLookup[(size_t)first + i - 1] = TileInfo{
-                &tileset,
                 tile,
+                tilesetLookup.size() - 1,
                 first + i,
-                Rectangle{ 
-                    (float)tile->imagePosition.x, 
-                    (float)tile->imagePosition.y,
-                    (float)tile->imageSize.x,
-                    (float)tile->imageSize.y,
-                },
-                &textures[texPath],
                 tile->properties
             };
         }
     }
+
+    return true;
 }
 
 std::optional<Chunk> Tilemap::GetChunk(Int2 pos, int layer) const {
@@ -178,38 +212,63 @@ bool Tilemap::CanPlaceLevel(const Level& level, Int2 position) {
     return true;
 }
 
-Vector2 Tilemap::TilemapToWorldPos(Int2 tilemapPos, int layer) const {
-    return (tilemapPos * tileSize).toVector2() + layers[layer].offset;
+Vec2 Tilemap::TilemapToWorldPos(Int2 tilemapPos, int layer) const {
+    return (tilemapPos * tileSize) + layers[layer].offset;
 }
 
-Int2 Tilemap::WorldToTilemapPos(Vector2 worldPos, int layer) const {
+Int2 Tilemap::WorldToTilemapPos(Vec2 worldPos, int layer) const {
     return Int2(worldPos - layers[layer].offset) / tileSize;
 }
 
 void Tilemap::Render(int layer) const {
+
+    std::vector<TileInstance> tiles;
+
+    TilesetLookup tileset = tilesetLookup.front();
+
     for (Chunk chunk : layers[layer].chunks) {
         for (int i = 0; i < chunk.tiles.size(); ++i) {
             int chunkWidth = chunk.size.x;
             Int2 tilePos = chunk.position + Int2(i % chunkWidth, i / chunkWidth);
 
             const TileInfo* tileInfo = GetTileInfo(chunk.tiles[i].ID);
-            if (tileInfo && tileInfo->GID != 0) DrawTile(*tileInfo, tilePos, layer);
+            if (!tileInfo || tileInfo->GID == 0) continue;
+
+			Vec2 halfTileOffset = Vec2{ -0.5f, -0.5f } * (Vec2)tileSize;
+            Vec2 worldOffset = layers[layer].offset + halfTileOffset;
+            Vec2 worldPos = tilePos * tileSize;
+
+            tiles.push_back(TileInstance{ worldPos, tileInfo->GID - 1 });
         }
     }
+
+    glBindBuffer(GL_ARRAY_BUFFER, tileVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, tiles.size() * sizeof(TileInstance), tiles.data());
+
+    Vec2 imageSize = tileset.tileset.getImageSize();
+    Vec2 uvStep = (Vec2)tileSize / imageSize;
+
+    shader.use();
+    shader.setVec2("uvStep", uvStep);
+    shader.setInt("tilesetCols", static_cast<int>(tileset.tileset.getColumnCount()));
+
+    glBindTexture(GL_TEXTURE_2D, tileset.texture.id);
+
+    glBindVertexArray(tileVAO);
+    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, tiles.size());
+
     for (const ObjectData &object : objects) {
         DrawObject(object, layer);
     }
 }
 
-void Tilemap::DrawTile(TileInfo tileInfo, Int2 pos, int layer, Vector2 offset) const {
-    Int2 tileSize = Int2(tileInfo.texCoords.width, tileInfo.texCoords.height);
-    Vector2 halfTileOffset = Vector2{ -0.5f, -0.5f } * tileSize.toVector2();
-    Vector2 worldOffset = layers[0].offset + halfTileOffset + offset;
-    Vector2 worldPos = (pos * tileSize).toVector2() + worldOffset;
-    DrawTextureRec(*tileInfo.texture, tileInfo.texCoords, worldPos, WHITE);
+void Tilemap::DrawTile(TileInfo tileInfo, Int2 pos, int layer, Vec2 offset) const {
+    Vec2 halfTileOffset = Vec2{ -0.5f, -0.5f } * tileSize;
+    Vec2 worldOffset = layers[0].offset + halfTileOffset + offset;
+    Vec2 worldPos = pos * tileSize + worldOffset;
 }
 
-void Tilemap::DrawTile(uint32_t GID, Int2 pos, int layer, Vector2 offset) const {
+void Tilemap::DrawTile(uint32_t GID, Int2 pos, int layer, Vec2 offset) const {
     const TileInfo* tileInfo = GetTileInfo(GID);
     DrawTile(*tileInfo, pos, layer, offset);
 }

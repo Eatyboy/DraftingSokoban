@@ -3,19 +3,38 @@ cmake_minimum_required(VERSION 3.13)
 set(CMAKE_CXX_STANDARD 20)
 
 option(PROD_BUILD "Makes this a production build" OFF)
+set(DEBUG ON CACHE BOOL "Enables extra debugging information" FORCE)
+
+if(DEBUG AND NOT PRODUCTION_BUILD)
+	add_compile_definitions(DEBUG)
+endif()
 
 if (MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "Multithreaded$<$<CONFIG:Release>:Release>")
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "Multithreaded$<$<CONFIG:Debug>:DebugRelease>")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "Multithreaded$<$<CONFIG:Debug>:Debug>")
     add_compile_options(/arch:AVX2)
 endif()
 
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries" FORCE)
+if(PRODUCTION_BUILD)
+	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+else()
+	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)
+endif()
 
-project(BasicRaylib)
+project(DraftingSokoban)
 
-add_subdirectory(lib/raylib)
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(lib/freetype)
+add_subdirectory(lib/glad)
+add_subdirectory(lib/glfw)
+add_subdirectory(lib/glm)
+add_subdirectory(lib/raudio)
+add_subdirectory(lib/stb_image)
 set(TMXLITE_STATIC_LIB ON CACHE BOOL "Build tmxlite as static" FORCE)
 add_subdirectory(lib/tmxlite)
 
@@ -40,8 +59,20 @@ add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
     COMMENT "Copying resources folder to output directory"
 )
 
+if(MSVC)
+	target_compile_definitions("${CMAKE_PROJECT_NAME}" PUBLIC _CRT_SECURE_NO_WARNINGS)
+	set_target_properties("${CMAKE_PROJECT_NAME}" PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup") #no console
+	
+	#set_property(TARGET "${CMAKE_PROJECT_NAME}" PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreadedDebug<$<CONFIG:Debug>:Debug>")
+	#set_property(TARGET "${CMAKE_PROJECT_NAME}" PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:Release>")
+endif()
+
+if (WIN32)
+	target_compile_options("${CMAKE_PROJECT_NAME}" PRIVATE /UUNICODE /U_UNICODE)
+endif()
+
 target_sources("${CMAKE_PROJECT_NAME}" PRIVATE ${MY_SOURCES})
 
 target_include_directories("${CMAKE_PROJECT_NAME}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 
-target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE raylib tmxlite)
+target_link_libraries("${CMAKE_PROJECT_NAME}" PRIVATE freetype glad glfw glm raudio stb_image tmxlite)
