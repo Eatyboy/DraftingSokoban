@@ -33,7 +33,7 @@ void UIContext::OpenElement(const UI::Style& style) {
     if (element == nullptr) return;
 
     if (!elementStack.empty()) {
-		element->parent = elementStack.back();
+        element->parent = elementStack.back();
         elementStack.back()->children.push_back(element);
     }
 
@@ -55,19 +55,19 @@ void UIContext::CloseElement() {
     if (parent == nullptr) return;
 
     if (element->isText()) {
-        element->size = MeasureTextEx(*element->style.font, element->label.c_str(), element->style.fontSize, element->style.fontSpacing);
+        element->size = MeasureText(element->label.c_str(), *element->style.font, element->style.fontSize);
     }
 
     float totalChildGap = fmaxf(static_cast<float>(element->children.size()) - 1, 0) * element->style.childGap;
 
 
     if (element->style.sizing.width.mode == UI::SizingMode::FIT) {
-		Texture image = element->style.image;
+        Texture image = element->style.image;
         if (image.id != 0) {
-            element->size.x = image.width;
+            element->size.x = (float)image.width;
         } else {
-			element->size.x += element->style.padding.left + element->style.padding.right;
-			if (element->style.flexDir == UI::FlexDir::ROW) element->size.x += totalChildGap;
+            element->size.x += element->style.padding.left + element->style.padding.right;
+            if (element->style.flexDir == UI::FlexDir::ROW) element->size.x += totalChildGap;
         }
     }
 
@@ -88,9 +88,9 @@ void UIContext::FitHeights(UI::Element* element) {
     float totalChildGap = fmaxf(static_cast<float>(element->children.size()) - 1, 0) * element->style.childGap;
 
     if (element->style.sizing.height.mode == UI::SizingMode::FIT) {
-		Texture image = element->style.image;
+        Texture image = element->style.image;
         if (image.id != 0) {
-            element->size.y = image.height;
+            element->size.y = (float)image.height;
         } else {
             element->size.y += element->style.padding.top + element->style.padding.bottom;
             if (element->style.flexDir == UI::FlexDir::COLUMN) element->size.y += totalChildGap;
@@ -99,12 +99,12 @@ void UIContext::FitHeights(UI::Element* element) {
 
     if (parent == nullptr) return;
 
-	if (parent->style.sizing.height.mode == UI::SizingMode::FIT) {
+    if (parent->style.sizing.height.mode == UI::SizingMode::FIT) {
         float effectiveHeight = element->size.y + element->style.margin.top + element->style.margin.bottom;
         parent->size.y = parent->style.flexDir == UI::FlexDir::ROW
             ? fmaxf(effectiveHeight, parent->size.y) 
             : parent->size.y + effectiveHeight;
-	}
+    }
 }
 
 void UIContext::WrapText() {
@@ -199,7 +199,7 @@ void UIContext::GrowHeights() {
 
         if (!isFlexColumn) {
             for (auto* child : growableHeights) {
-				child->size.y = remainingHeight - child->style.margin.top - child->style.margin.bottom;
+                child->size.y = remainingHeight - child->style.margin.top - child->style.margin.bottom;
             }
             continue;
         }
@@ -247,22 +247,22 @@ void UIContext::LayoutElements() {
         for (UI::Element* child : element->children) elementStack.push_back(child);
 
         if (element->style.positioning.mode == UI::PositionMode::ABSOLUTE) {
-			switch (element->style.alignX) {
-			case UI::AlignX::CENTER:
-				element->position.x += (element->parent->size.x - element->size.x) / 2.0f;
-				break;
-			case UI::AlignX::RIGHT:
+            switch (element->style.alignX) {
+            case UI::AlignX::CENTER:
+                element->position.x += (element->parent->size.x - element->size.x) / 2.0f;
+                break;
+            case UI::AlignX::RIGHT:
                 element->position.x += element->parent->size.x - element->size.x;
-				break;
-			}
-			switch (element->style.alignY) {
-			case UI::AlignY::CENTER:
-				element->position.y += (element->parent->size.y - element->size.y) / 2.0f;
-				break;
-			case UI::AlignY::BOTTOM:
+                break;
+            }
+            switch (element->style.alignY) {
+            case UI::AlignY::CENTER:
+                element->position.y += (element->parent->size.y - element->size.y) / 2.0f;
+                break;
+            case UI::AlignY::BOTTOM:
                 element->position.y += element->parent->size.y - element->size.y;
-				break;
-			}
+                break;
+            }
         }
 
         bool isFlexRow = element->style.flexDir == UI::FlexDir::ROW;
@@ -288,10 +288,10 @@ void UIContext::LayoutElements() {
 
             if (isFlexRow) {
                 child->position.x += cursor;
-				cursor += child->size.x + element->style.childGap;
+                cursor += child->size.x + element->style.childGap;
             } else {
                 child->position.y += cursor;
-				cursor += child->size.y + element->style.childGap;
+                cursor += child->size.y + element->style.childGap;
             }
         }
     }
@@ -305,13 +305,13 @@ void UIContext::ResolveCallbacks() {
         elementStack.pop_back();
         for (UI::Element* child : curr->children) elementStack.push_back(child);
 
-        if (CheckCollisionPointRec(mouseState.mousePos, curr->GetRect())) {
-			hotID = curr->id;
-			if (curr->onHover != nullptr) curr->onHover(*curr);
-			if (mouseState.leftDown) {
-				activeID = curr->id;
-				if (curr->onActive != nullptr) curr->onActive(*curr);
-			}
+        if (PointInRect(mouseState.mousePos, curr->position, curr->size, curr->style.roundness)) {
+            hotID = curr->id;
+            if (curr->onHover != nullptr) curr->onHover(*curr);
+            if (mouseState.leftDown) {
+                activeID = curr->id;
+                if (curr->onActive != nullptr) curr->onActive(*curr);
+            }
             if (curr->onClick != nullptr && mouseState.leftReleased && activeID == curr->id) {
                 curr->onClick(*curr);
             }
@@ -324,27 +324,20 @@ void UIContext::Render(UI::Element* element) {
     if (element == nullptr) return;
 
     const UI::Style& style = element->style;
-    Rectangle rect = element->GetRect();
 
     if (element->isText()) {
-        DrawTextPro(*element->style.font, element->label.c_str(), element->position,
-            Vec2::zero, 0.0f, element->style.fontSize, element->style.fontSpacing, element->style.textColor);
+        RenderText(element->label.c_str(), *element->style.font, element->style.fontSize, element->position, element->style.textColor);
     }
     else {
         Texture image = element->style.image;
         if (image.id != 0) {
-            DrawTextureRec(*image, Rectangle{ 0, 0, rect.width, rect.height }, element->position, element->style.backgroundColor);
-        } else if (style.roundness == 0) {
-			DrawRectangleRec(rect, style.backgroundColor);
-			if (style.borderWidth > 0) DrawRectangleLinesEx(element->GetRect(), style.borderWidth, style.borderColor);
-		} else {
-			int segments = 8;
-			float roundness = style.roundness == UI::rounded_full 
-				? 1.0f
-				: 2.0f * style.roundness / fminf(rect.width, rect.height);
-			DrawRectangleRounded(rect, roundness, segments, style.backgroundColor);
-			if (style.borderWidth > 0) DrawRectangleRoundedLinesEx(rect, roundness, segments, style.borderWidth, style.borderColor);
-		}
+            DrawTexturedRect(element->position, element->size, image, Vec2::zero, Vec2::one, element->style.backgroundColor);
+        } else {
+            float roundness = style.roundness == UI::rounded_full
+                ? 0.5f * fminf(element->size.x, element->size.y)
+                : style.roundness;
+            DrawRect(element->position, element->size, style.backgroundColor, roundness, style.borderWidth, style.borderColor);
+        }
     }
 
     for (UI::Element* element : element->children) {
@@ -385,6 +378,5 @@ void UIContext::Text(std::string text, const UI::TextStyle& style) {
     OpenElement(style.toStyle());
     UI::Element* element = elementStack.back();
     element->label = text;
-    if (style.font == nullptr) element->style.font = defaultFont;
     CloseElement();
 }

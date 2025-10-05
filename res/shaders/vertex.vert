@@ -12,11 +12,11 @@ uniform int tilesetCols;
 uniform int tileSize;
 
 void main() {
-	vec2 world = iWorldPos + aPos * tileSize;
-	gl_Position = projection * vec4(world, 0.0, 1.0);
+    vec2 world = iWorldPos + aPos * tileSize;
+    gl_Position = projection * vec4(world, 0.0, 1.0);
 
-	int col = iTileIndex % tilesetCols;
-	int row = iTileIndex / tilesetCols;
-	vec2 uvOffset = vec2(col, row) * uvStep;
-	TexCoords = uvOffset + aBaseUV * uvStep;
+    int col = iTileIndex % tilesetCols;
+    int row = iTileIndex / tilesetCols;
+    vec2 uvOffset = vec2(col, row) * uvStep;
+    TexCoords = uvOffset + aBaseUV * uvStep;
 }

@@ -4,15 +4,16 @@
 #include <iterator>
 #include <renderer.h>
 #include <glad.h>
+#include <Debug.h>
 
 constexpr int MAX_TILES = 100000;
 
 struct TileInstance {
-	Vec2 worldPos;
-	uint32_t tileIndex;
+    Vec2 worldPos;
+    uint32_t tileIndex;
 };
 
-bool Tilemap::LoadTilemap(const char* filename) {
+bool Tilemap::LoadTilemap(const char* filename, Shader* shader) {
     tmx::Map map;
     if (!map.load(filename)) {
         std::string msg = "Error: Failed to load tilemap from \"" + std::string(filename) + "\"\n";
@@ -53,11 +54,13 @@ bool Tilemap::LoadTilemap(const char* filename) {
     glBufferData(GL_ARRAY_BUFFER, MAX_TILES * sizeof(TileInstance), nullptr, GL_DYNAMIC_DRAW);
 
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(TileInstance), (void*)0);
-    glVertexAttribIPointer(3, 1, GL_FLOAT, sizeof(TileInstance), (void*)(offsetof(TileInstance, tileIndex)));
+    glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, sizeof(TileInstance), (void*)(offsetof(TileInstance, tileIndex)));
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
     glVertexAttribDivisor(2, 1);
     glVertexAttribDivisor(3, 1);
+
+    this->shader = shader;
 
     tileSize = Int2((int)map.getTileSize().x, (int)map.getTileSize().y);
 
@@ -120,6 +123,7 @@ bool Tilemap::LoadTilemap(const char* filename) {
                 }
                 Vec2 offset = Vec2{
                     (float)tileLayer.getOffset().x,
+
                     (float)tileLayer.getOffset().y
                 };
                 this->layers.push_back(ChunkLayer{chunks, offset});
@@ -141,6 +145,8 @@ bool Tilemap::LoadTilemap(const char* filename) {
 
         std::string texPath = tileset.getImagePath();
         Texture texture = LoadTexture(texPath.c_str());
+
+        shader->setInt("texture1", 0);
 
         tilesetLookup.push_back(TilesetLookup{ tileset, first, first + count, texture });
 
@@ -189,7 +195,7 @@ const TileInfo* Tilemap::GetTileInfo(uint32_t GID) const {
     return &tileLookup[GID];
 }
 
-ObjectData& Tilemap::GetObject(uint32_t ID) {
+ObjectData& Tilemap::GetObjectData(uint32_t ID) {
     return objects.at(ID);
 }
 
@@ -234,13 +240,17 @@ void Tilemap::Render(int layer) const {
             const TileInfo* tileInfo = GetTileInfo(chunk.tiles[i].ID);
             if (!tileInfo || tileInfo->GID == 0) continue;
 
-			Vec2 halfTileOffset = Vec2{ -0.5f, -0.5f } * (Vec2)tileSize;
+            Vec2 halfTileOffset = Vec2{ -0.5f, -0.5f } * (Vec2)tileSize;
             Vec2 worldOffset = layers[layer].offset + halfTileOffset;
             Vec2 worldPos = tilePos * tileSize;
 
-            tiles.push_back(TileInstance{ worldPos, tileInfo->GID - 1 });
+            tiles.push_back(TileInstance{ worldPos, tileInfo->GID - 2 });
         }
     }
+
+    glBindVertexArray(tileVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tileset.texture.id);
 
     glBindBuffer(GL_ARRAY_BUFFER, tileVBO);
     glBufferSubData(GL_ARRAY_BUFFER, 0, tiles.size() * sizeof(TileInstance), tiles.data());
@@ -248,14 +258,16 @@ void Tilemap::Render(int layer) const {
     Vec2 imageSize = tileset.tileset.getImageSize();
     Vec2 uvStep = (Vec2)tileSize / imageSize;
 
-    shader.use();
-    shader.setVec2("uvStep", uvStep);
-    shader.setInt("tilesetCols", static_cast<int>(tileset.tileset.getColumnCount()));
+    shader->use();
+    shader->setVec2("uvStep", uvStep);
+    shader->setInt("tilesetCols", static_cast<int>(tileset.tileset.getColumnCount()));
+    shader->setMat4("projection", projection);
+    shader->setInt("tileSize", tileSize.x);
 
-    glBindTexture(GL_TEXTURE_2D, tileset.texture.id);
 
-    glBindVertexArray(tileVAO);
-    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, tiles.size());
+    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, (GLsizei)tiles.size());
+
+    glBindVertexArray(0);
 
     for (const ObjectData &object : objects) {
         DrawObject(object, layer);
@@ -263,9 +275,17 @@ void Tilemap::Render(int layer) const {
 }
 
 void Tilemap::DrawTile(TileInfo tileInfo, Int2 pos, int layer, Vec2 offset) const {
-    Vec2 halfTileOffset = Vec2{ -0.5f, -0.5f } * tileSize;
-    Vec2 worldOffset = layers[0].offset + halfTileOffset + offset;
-    Vec2 worldPos = pos * tileSize + worldOffset;
+    Vec2 worldOffset = layers[0].offset + offset;
+    Vec2 worldPos = (Vec2)(pos * tileSize) + worldOffset;
+
+    const TilesetLookup& tileset = tilesetLookup.front();
+    int tileIndex = tileInfo.GID - 2;
+    int tilesetCols = tileset.tileset.getColumnCount();
+    int col = tileIndex % tilesetCols;
+    int row = tileIndex / tilesetCols;
+    Vec2 baseUV = Vec2(col, row) * (Vec2)tileSize;
+    Vec2 textureSize = Vec2(tileset.texture.width, tileset.texture.height);
+    DrawTexturedRect(worldPos, tileSize, tileset.texture, baseUV / textureSize, (Vec2)tileSize / textureSize, WHITE);
 }
 
 void Tilemap::DrawTile(uint32_t GID, Int2 pos, int layer, Vec2 offset) const {

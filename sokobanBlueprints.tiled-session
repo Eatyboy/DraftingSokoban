@@ -3,7 +3,7 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "res/testLevel.tmx",
+    "activeFile": "res/tilemap.tmx",
     "expandedProjectPaths": [
         "res",
         "."
@@ -17,19 +17,19 @@
             "scale": 1.5,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 334.66666666666674,
-                "y": 184
+                "x": -118.66666666666666,
+                "y": 73
             }
         },
         "res/tilemap.tmx": {
             "expandedObjectLayers": [
                 5
             ],
-            "scale": 1.5,
+            "scale": 11,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 256.3333333333333,
-                "y": -0.3333333333333144
+                "x": 68.63636363636364,
+                "y": 70.4090909090909
             }
         },
         "res/tileset.tsx": {
@@ -51,9 +51,9 @@
     "project": "sokobanBlueprints.tiled-project",
     "property.type": "bool",
     "recentFiles": [
-        "res/tilemap.tmx",
+        "res/testLevel.tmx",
         "res/tileset.tsx",
-        "res/testLevel.tmx"
+        "res/tilemap.tmx"
     ],
     "tileset.lastUsedFilter": "Tiled tileset files (*.tsx *.xml)",
     "tileset.lastUsedFormat": "tsx"

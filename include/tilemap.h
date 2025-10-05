@@ -12,6 +12,7 @@
 #include <levels.h>
 #include <stb_image/stb_image.h>
 #include <shader.h>
+#include <renderer.h>
 
 class Tilemap {
 private:
@@ -27,7 +28,7 @@ private:
     unsigned int quadEBO = 0;
     unsigned int tileVBO = 0;
 
-    Shader& shader;
+    Shader* shader;
 
     std::vector<ChunkLayer> layers;
     std::vector<TileInfo> tileLookup;
@@ -38,15 +39,15 @@ public:
     Int2 tileSize;
     GameObjects gameObjects;
 
-    Tilemap(Shader& shader) : tileSize(), shader(shader) {}
+    Tilemap() : tileSize(), shader() {}
 
-    bool LoadTilemap(const char* filename);
+    bool LoadTilemap(const char* filename, Shader* shader);
 
     std::optional<tmx::TileLayer::Tile> GetTile(int posX, int posY, int layer) const;
     std::optional<tmx::TileLayer::Tile> GetTile(Int2 pos, int layer) const;
     std::optional<Chunk> GetChunk(Int2 pos, int layer) const;
     const TileInfo* GetTileInfo(uint32_t GID) const;
-    ObjectData& GetObject(uint32_t ID);
+    ObjectData& GetObjectData(uint32_t ID);
     bool IsSolid(Int2 pos) const;
     bool CanPlaceLevel(const Level& level, Int2 position);
 

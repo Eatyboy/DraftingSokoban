@@ -2,23 +2,33 @@
 
 #include <glad.h>
 #include <utils.h>
+#include <renderer.h>
 #include <ft2build.h>
-#include FT_FREETYPE_H
+#include <freetype/freetype.h>
+#include <freetype/ftglyph.h>
+#include <array>
 
-FT_Library ft;
-Int2 dpi;
+constexpr int ASCII_BEGIN = 32;
+constexpr int ASCII_END = 127;
 
 struct Character {
-	unsigned int textureID;
-	Int2 glyphSize;
-	Int2 bearing;
-	unsigned int advance;
+    unsigned int textureID;
+    Int2 glyphSize;
+    Int2 bearing;
+    int advance;
 };
 
 struct Font {
-
+    std::array<Character, ASCII_END> characters;
+    float lineHeight = 0.0f;
+    int ascender = 0;
+    int descender = 0;
+    int linegap = 0;
+    int topMargin = 0;
+    float baseFontSize = 0.0f;
 };
 
-void InitFreeType(Vec2 screenDPI);
-void LoadFont(const char* path);
-void RenderText(const char* text, Vec2 position);
+void InitTextRenderer(Vec2 screenDPI);
+Font* LoadFont(const char* path);
+void RenderText(const char* text, Font& font, float fontSize, Vec2 position, Color color = BLACK);
+Vec2 MeasureText(const char* text, Font& font, float fontSize);

@@ -2,8 +2,8 @@
 #define DEBUG_H
 
 enum class DebugOutputMode {
-	CONSOLE,
-	VS_OUTPUT,
+    CONSOLE,
+    VS_OUTPUT,
 };
 
 void createDebugConsole();

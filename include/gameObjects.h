@@ -44,7 +44,7 @@ struct GameObjects {
 
 ObjectType stringToObjectType(const std::string& str);
 void Push(Pushable& pushable, Int2 direction);
-void UpdatePushable(Pushable& pushable, ObjectData& object, float dt);
+void UpdatePushable(Pushable& pushable, ObjectData& object, float tick_t);
 static inline bool isPushable(ObjectType objType) {
     switch (objType) {
     case ObjectType::Box: return true;

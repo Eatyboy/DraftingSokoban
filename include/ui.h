@@ -11,8 +11,8 @@
 #include <text.h>
 
 namespace UI {
-	struct MouseState {
-		Vec2 mousePos = { 0, 0 };
+    struct MouseState {
+        Vec2 mousePos = { 0, 0 };
         bool leftDown = false;
         bool leftPressed = false;
         bool leftUp = false;
@@ -21,7 +21,7 @@ namespace UI {
         bool rightPressed = false;
         bool rightUp = false;
         bool rightReleased = false;
-	};
+    };
 
     enum class PositionMode {
         RELATIVE,
@@ -114,11 +114,11 @@ namespace UI {
 
     constexpr float rounded_sm = 2.0f;
     constexpr float rounded = 4.0f;
-	constexpr float rounded_md = 6.0f;
-	constexpr float rounded_lg = 8.0f;
-	constexpr float rounded_xl = 12.0f;
-	constexpr float rounded_2xl = 16.0f;
-	constexpr float rounded_3xl = 24.0f;
+    constexpr float rounded_md = 6.0f;
+    constexpr float rounded_lg = 8.0f;
+    constexpr float rounded_xl = 12.0f;
+    constexpr float rounded_2xl = 16.0f;
+    constexpr float rounded_3xl = 24.0f;
     constexpr float rounded_full = -1.0f;
 
     struct Element {
@@ -152,12 +152,12 @@ namespace UI {
         }
     };
 
-	struct Callbacks {
-		const char* label = nullptr;
-		std::function<void(Element&)> onHover = nullptr;
-		std::function<void(Element&)> onActive = nullptr;
-		std::function<void(Element&)> onClick = nullptr;
-	};
+    struct Callbacks {
+        const char* label = nullptr;
+        std::function<void(Element&)> onHover = nullptr;
+        std::function<void(Element&)> onActive = nullptr;
+        std::function<void(Element&)> onClick = nullptr;
+    };
 
     struct PanelStyle {
         Texture image;
@@ -241,10 +241,10 @@ namespace UI {
         if (element == nullptr) return;
         if (callbacks.label == nullptr) return;
 
-		element->id = GetElementID(callbacks.label, element->parent);
-		element->onHover = callbacks.onHover;
+        element->id = GetElementID(callbacks.label, element->parent);
+        element->onHover = callbacks.onHover;
         element->onActive = callbacks.onActive;
-		element->onClick = callbacks.onClick;
+        element->onClick = callbacks.onClick;
     }
 }
 
@@ -255,10 +255,7 @@ public:
     uint64_t hotID = 0;
     uint64_t activeID = 0;
 
-    UIContext(size_t arenaSize = sizeof(UI::Element) * 256) : elementArena(arenaSize) {
-        static Font defaultfont = GetDefaultFont();
-		this->defaultFont = defaultFont; 
-    }
+    UIContext(size_t arenaSize = sizeof(UI::Element) * 256) : elementArena(arenaSize) {}
 
     void BeginUI(Vec2 currentScreenSize, UI::MouseState currentFrameMouseState, UI::FlexDir rootFlexDir = UI::FlexDir::ROW);
     void EndUI();
@@ -275,7 +272,6 @@ private:
     Arena elementArena;
     UI::MouseState mouseState;
     bool isContextActive = false;
-    Font* defaultFont = nullptr;
     std::vector<uint64_t> idStack;
     std::vector<UI::Element*> elementStack;
 
