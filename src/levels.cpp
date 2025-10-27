@@ -31,6 +31,7 @@ Level* LoadLevel(const char* filename) {
                     tileSize,
                     Vec2::zero,
                     objType,
+
                     tileID,
                     object.getRotation(),
                     object.visible()

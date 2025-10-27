@@ -4,23 +4,21 @@
 #include <gameObjects.h>
 #include <levels.h>
 #include <ui.h>
-#include <string>
 #include <format>
 #include <glad.h>
 #include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
 #include <Debug.h>
-#include <Windows.h>
 #include <shader.h>
 #include <renderer.h>
 #include <text.h>
-#include <glm/ext.hpp>
 #include <chrono>
 #include <thread>
+#include <input.h>
+#include <glm/ext.hpp>
+#include <array>
 
-Int2 screenSize = Int2(1280, 720);
+Int2 screenSize = Int2(1920, 1080);
 glm::mat4 projection;
-Vec2 mousePos = Vec2::zero;
 float lastFrameTime = 0.0f;
 float dt = 0.0f;
 
@@ -39,22 +37,21 @@ float tick_t = 0.0f;
 bool tickInProgress = false;
 
 void LevelSelect(UIContext& ui, Level* level, Int2 position, Texture image) {
-	ui.Panel(UI::PanelStyle{ .image = image}, UI::Callbacks{ .label = "select", 
-        .onHover = [](UI::Element& e) {e.style.backgroundColor = LIGHTGRAY; },
-        .onActive = [](UI::Element& e) {e.style.backgroundColor = GRAY; },
-        .onClick = [level, position](UI::Element& e) {world.AddLevel(*level, position); 
-        }});
+    ui.Panel(UI::PanelStyle{ 
+            .image = image, 
+            .sizing = {UI::Fixed(400), UI::Fixed(400)},
+            .alignX = UI::AlignX::CENTER, 
+            .alignY = UI::AlignY::CENTER
+        }, UI::Callbacks{.label = "select",
+            .onHover = [](UI::Element& e) {e.style.backgroundColor = LIGHTGRAY; },
+            .onActive = [](UI::Element& e) {e.style.backgroundColor = GRAY; },
+            .onClick = [level, position](UI::Element& e) {world.AddLevel(*level, position); }
+        });
 }
 
 void windowResizeCallback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
     screenSize = { width, height };
-}
-
-void mousePosCallback(GLFWwindow* window, double mouseXIn, double mouseYIn) {
-    float mouseX = static_cast<float>(mouseXIn);
-    float mouseY = static_cast<float>(mouseYIn);
-    mousePos = Vec2{ mouseX, mouseY };
 }
 
 float zoom = 1.0f;
@@ -64,6 +61,8 @@ void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
     zoomLevel = glm::max(glm::min((int)zoomLevel + (int)yoffset, 8), -8);
     zoom = powf(2.0f, 0.5f * (float)zoomLevel);
 }
+
+int fps = 0;
 
 int main(void) {
     createDebugConsole();
@@ -92,12 +91,12 @@ int main(void) {
     screenDPI *= 96;
 
     glfwSetFramebufferSizeCallback(window, windowResizeCallback);
-    glfwSetCursorPosCallback(window, mousePosCallback);
     glfwSetScrollCallback(window, scrollCallback);
 
     Shader shader("vertex.vert", "fragment.frag");
 
     InitRenderer();
+    InitializeInput(window);
     InitTextRenderer(screenDPI);
 
     playerPos = { 0, 0 };
@@ -119,33 +118,64 @@ int main(void) {
 
     Font* font = LoadFont("res/fonts/Merriweather_24pt-Regular.ttf");
 
-    bool levelPickUIOpen = true;
+    bool levelPickUIOpen = false;
 
     Vec2 camPos = Vec2::zero;
+
+    std::array<int, 120> fpsNums;
+    int totalFrameCount = 0;
 
     while (!glfwWindowShouldClose(window)) {
         float currentFrameTime = static_cast<float>(glfwGetTime());
         dt = currentFrameTime - lastFrameTime;
+        fpsNums[totalFrameCount % fpsNums.size()] = (int)(1.0f / dt);
+        totalFrameCount++;
+        int fps = 0;
+        for (int i = 0; i < std::min(totalFrameCount, (int)fpsNums.size()); ++i) {
+            fps += fpsNums[i];
+        }
+        fps = fps / std::min(totalFrameCount, (int)fpsNums.size());
         if (dt < targetFrameTime) {
             std::this_thread::sleep_for(std::chrono::duration<float>(targetFrameTime - dt));
         }
         lastFrameTime = currentFrameTime;
 
+        UpdateInputState();
+        Vec2 mousePos = GetMousePos();
 
         if (!tickInProgress) {
-            if (glfwGetKey(window, GLFW_KEY_W) || glfwGetKey(window, GLFW_KEY_UP)) Move(Int2::up);
-            if (glfwGetKey(window, GLFW_KEY_S) || glfwGetKey(window, GLFW_KEY_DOWN)) Move(Int2::down);
-            if (glfwGetKey(window, GLFW_KEY_A) || glfwGetKey(window, GLFW_KEY_LEFT)) Move(Int2::left);
-            if (glfwGetKey(window, GLFW_KEY_D) || glfwGetKey(window, GLFW_KEY_RIGHT)) Move(Int2::right);
+            if (GetKeyState(KEY_W).down || GetKeyState(KEY_UP).down) Move(Int2::up);
+            if (GetKeyState(KEY_S).down || GetKeyState(KEY_DOWN).down) Move(Int2::down);
+            if (GetKeyState(KEY_A).down || GetKeyState(KEY_LEFT).down) Move(Int2::left);
+            if (GetKeyState(KEY_D).down || GetKeyState(KEY_RIGHT).down) Move(Int2::right);
         }
 
-        //if (IsKeyReleased(KEY_SPACE)) levelPickUIOpen = !levelPickUIOpen;
+        if (GetKeyState(KEY_SPACE).released) levelPickUIOpen = !levelPickUIOpen;
 
         if (tickInProgress) {
             tick_t += dt / moveDuration;
-            for (auto& box : world.gameObjects.boxes) {
-                UpdatePushable(box.pushData, world.GetObjectData(box.ID), tick_t);
+
+            std::vector<Int2> toUpdate;
+            toUpdate.reserve(world.gameObjects.boxes.size());
+
+            for (auto& pair : world.gameObjects.boxes) {
+                if (pair.second.pushData.isMoving) toUpdate.push_back(pair.first);
             }
+            std::sort(toUpdate.begin(), toUpdate.end(), [](Int2 a, Int2 b) {
+                if (world.gameObjects.boxes[a].pushData.moveDelta == Int2::up) {
+                    return a.y < b.y;
+                } else if (world.gameObjects.boxes[a].pushData.moveDelta == Int2::down) {
+                    return a.y > b.y;
+                } else if (world.gameObjects.boxes[a].pushData.moveDelta == Int2::left) {
+                    return a.x < b.x;
+                } else if (world.gameObjects.boxes[a].pushData.moveDelta == Int2::right) {
+                    return a.x > b.x;
+                }
+            });
+            for (auto& pos : toUpdate) {
+                UpdatePushable(world, world.gameObjects.boxes[pos].pushData, world.objects[pos], tick_t);
+            }
+
             if (tick_t >= 1.0f) {
                 tick_t = 0.0f;
                 tickInProgress = false;
@@ -154,52 +184,40 @@ int main(void) {
         }
 
         Vec2 target = world.TilemapToWorldPos(playerPos) + (Vec2)lastMoveDir * (Smoothstep(tick_t) * world.tileSize.x) + (Vec2)world.tileSize * 0.5f;
-        camPos = (Vec2)screenSize * 0.5f - Vec2(target.x, -target.y) * zoom;
+        camPos = (Vec2)screenSize * 0.5f - Vec2(target.x, target.y) * zoom;
 
         UI::MouseState currMouseState = UI::MouseState{
             .mousePos = mousePos,
-          //.leftDown = IsMouseButtonDown(MOUSE_BUTTON_LEFT),
-          //.leftPressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT),
-          //.leftUp = IsMouseButtonUp(MOUSE_BUTTON_LEFT),
-          //.leftReleased = IsMouseButtonReleased(MOUSE_BUTTON_LEFT),
-          //.rightDown = IsMouseButtonDown(MOUSE_BUTTON_RIGHT),
-          //.rightPressed = IsMouseButtonPressed(MOUSE_BUTTON_RIGHT),
-          //.rightUp = IsMouseButtonUp(MOUSE_BUTTON_RIGHT),
-          //.rightReleased = IsMouseButtonReleased(MOUSE_BUTTON_RIGHT),
+            .left = GetMouseButtonState(MOUSE_LEFT),
+            .right = GetMouseButtonState(MOUSE_RIGHT),
+            .middle = GetMouseButtonState(MOUSE_MIDDLE),
         };
         ui.BeginUI(screenSize, currMouseState); {
             using namespace UI;
-            ui.Panel(PanelStyle{
-                .sizing = { Fit(), Fit() },
-                .padding = Padding(24.0f),
-                .margin = Margin(50.0f),
-                .roundness = rounded_xl,
-                .backgroundColor = GREEN,
-                .borderWidth = 3.0f,
-                .borderColor = DARKGREEN,
-                }, [&] {
-                    ui.Panel(PanelStyle{
-                            .sizing = { Fixed(300), Fixed(200) },
-                            .roundness = rounded_md,
-                            .backgroundColor = BLUE,
-                            .borderWidth = 3.0f,
-                            .borderColor = DARKBLUE,
-                        });
-                });
-            //if (levelPickUIOpen) {
-            //    ui.Panel(PanelStyle{
-            //        }, [&] {
-            //              LevelSelect(ui, testLevel, {16, 16}, testLevelImg);
-            //        });
-            //}
-            ui.Text(std::format("Player position: ({}, {})", playerPos.x, playerPos.y), {
+            if (levelPickUIOpen) {
+                ui.Panel(PanelStyle{
+                        .alignX = AlignX::CENTER,
+                        .alignY = AlignY::CENTER,
+                        .backgroundColor = BLANK,
+                    }, [&] {
+                          LevelSelect(ui, testLevel, {8, 8}, testLevelImg);
+                    });
+            }
+            ui.Text(std::format("FPS: {}", fps), {
                 .font = font,
                 .positioning = Absolute({0, 0}),
                 });
+            ui.Text(std::format("Player position: ({}, {})", playerPos.x, playerPos.y), {
+                .font = font,
+                .positioning = Absolute({0, 40}),
+                });
+            ui.Text(std::format("Mouse position: ({}, {})", mousePos.x, mousePos.y), {
+                .font = font,
+                .positioning = Absolute({0, 80}),
+                });
         } ui.EndUI();
 
-        glClearColor(SKYBLUE.r / 255.0f, SKYBLUE.g / 255.0f, SKYBLUE.b / 255.0f, SKYBLUE.a / 255.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        ClearColor(SKYBLUE);
 
         projection = glm::ortho(0.0f, (float)screenSize.x, (float)screenSize.y, 0.0f, -1.0f, 1.0f);
         projection = glm::translate(projection, glm::vec3(camPos.x, camPos.y, 0.0f));
@@ -212,7 +230,6 @@ int main(void) {
 
         ui.Render();
 
-        RenderText("Hello, world!\nI am a piece of text.\nNice to meet you!", *font, 32.0f, { 400, 400 }, YELLOW);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -225,8 +242,21 @@ void Move(Int2 movement) {
     Int2 targetPos = playerPos + movement;
 
     if (world.IsSolid(targetPos)) return;
-    for (auto& box : world.gameObjects.boxes) {
-        if (targetPos == world.GetObjectData(box.ID).position) Push(box.pushData, movement);
+    if (world.gameObjects.boxes.count(targetPos) > 0) {
+        std::vector<Int2> boxesToPushKeys;
+        boxesToPushKeys.push_back(targetPos);
+        Int2 currPos = targetPos;
+
+        while (world.gameObjects.boxes.count(currPos + movement) > 0) {
+            boxesToPushKeys.push_back(currPos + movement);
+            currPos += movement;
+        }
+
+        if (world.IsSolid(currPos + movement)) return;
+
+        for (auto it = boxesToPushKeys.rbegin(); it != boxesToPushKeys.rend(); ++it) {
+            Push(world.gameObjects.boxes[*it].pushData, movement);
+        }
     }
 
     tickInProgress = true;
@@ -237,7 +267,7 @@ void Move(Int2 movement) {
 void DrawPlayer() {
     Vec2 worldPos = world.TilemapToWorldPos(playerPos);
     if (tickInProgress) {
-        Vec2 offset = (Vec2)lastMoveDir * (Smoothstep(tick_t) * (Vec2)world.tileSize.x);
+        Vec2 offset = (Vec2)lastMoveDir * (Smoothstep(tick_t) * (float)world.tileSize.x);
         worldPos = worldPos + offset;
     }
     DrawRect(worldPos, (Vec2)world.tileSize, YELLOW, 16.0f);

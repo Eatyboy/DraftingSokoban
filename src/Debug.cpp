@@ -19,7 +19,7 @@ void createDebugConsole() {
 
         debugOutputMode = DebugOutputMode::CONSOLE;
 
-        debugLog("Created console!\n");
+        debugLog("Created console!");
     }
 }
 
@@ -40,11 +40,13 @@ void debugLog(const char *format, ...) {
     size_t formattedMessageLen = vsnprintf(nullptr, 0, format, args_copy);
     va_end(args_copy);
 
-    size_t totalBufferSize = prefixLen + formattedMessageLen + 1;
+    size_t totalBufferSize = prefixLen + formattedMessageLen + 2; // \n + \0
     std::vector<char> buffer(totalBufferSize);
 
     strcpy_s(buffer.data(), totalBufferSize, prefix);
     vsnprintf(buffer.data() + prefixLen, totalBufferSize - prefixLen, format, args);
+    buffer.data()[totalBufferSize - 2] = '\n';
+    buffer.data()[totalBufferSize - 1] = '\0';
 
     va_end(args);
 
@@ -72,11 +74,13 @@ void debugError(const char *format, ...) {
     size_t formattedMessageLen = vsnprintf(nullptr, 0, format, args_copy);
     va_end(args_copy);
 
-    size_t totalBufferSize = prefixLen + formattedMessageLen + 1;
+    size_t totalBufferSize = prefixLen + formattedMessageLen + 2; // \n + \0
     std::vector<char> buffer(totalBufferSize);
 
     strcpy_s(buffer.data(), totalBufferSize, prefix);
     vsnprintf(buffer.data() + prefixLen, totalBufferSize - prefixLen, format, args);
+    buffer.data()[totalBufferSize - 2] = '\n';
+    buffer.data()[totalBufferSize - 1] = '\0';
 
     va_end(args);
 

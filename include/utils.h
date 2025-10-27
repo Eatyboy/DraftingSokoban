@@ -30,8 +30,11 @@ struct Int2 {
     Int2(tmx::Vector2<T> v) : x(static_cast<int>(v.x)), y(static_cast<int>(v.y)) {}
 
     struct Hash {
+        // ChatGPT ass hash function
         size_t operator()(const Int2& v) const {
-            return std::hash<int>()(v.x) ^ (std::hash<int>()(v.y) << 1);
+            std::size_t h1 = std::hash<int>()(v.x);
+            std::size_t h2 = std::hash<int>()(v.y);
+            return h1 ^ (h2 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2));
         }
     };
 
@@ -175,7 +178,7 @@ struct Vec2 {
     }
 
     Vec2 operator-(const Vec2& other) const {
-        return Vec2(x - other.x, y + other.y);
+        return Vec2(x - other.x, y - other.y);
     }
 
     Vec2 operator*(const Vec2& other) const {
@@ -255,7 +258,7 @@ struct Vec2 {
     }
 
     float distance(Vec2 a, Vec2 b) {
-        return std::sqrtf(static_cast<float>(distanceSq(a, b)));
+        return std::sqrtf(distanceSq(a, b));
     }
 
     float distanceSq(Vec2 a, Vec2 b) {
@@ -263,7 +266,7 @@ struct Vec2 {
     }
 
     float magnitude() const {
-        return std::sqrtf(static_cast<float>(this->magnitudeSq()));
+        return std::sqrtf(this->magnitudeSq());
     }
 
     float magnitudeSq() const {
@@ -309,7 +312,7 @@ inline bool PointInRect(Vec2 point, Vec2 rectPos, Vec2 rectSize, float radius) {
     Vec2 halfSize = 0.5f * rectSize;
     Vec2 center = rectPos + halfSize;
     Vec2 q = (point - center).abs() - halfSize + Vec2(radius);
-    float d = (Vec2::Max(q, Vec2::zero)).magnitude() - radius;
+    float d = (Vec2::Max(q, Vec2::zero)).magnitude() + fminf(fmaxf(q.x, q.y), 0.0f) - radius;
     return d < 0.0f;
 }
 

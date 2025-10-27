@@ -80,11 +80,11 @@ bool Tilemap::LoadTilemap(const char* filename, Shader* shader) {
 
                 switch (objType) {
                 case ObjectType::Box:
-                    gameObjects.boxes.push_back(Box(static_cast<uint32_t>(objects.size())));
+                    gameObjects.boxes[position] = Box(static_cast<uint32_t>(objects.size() + 1));
                     break;
                 };
                 
-                objects.push_back(ObjectData{
+                objects[position] = ObjectData{
                     position,
                     tileSize,
                     Vec2{ 0, 0 },
@@ -92,7 +92,7 @@ bool Tilemap::LoadTilemap(const char* filename, Shader* shader) {
                     tileID,
                     object.getRotation(),
                     object.visible()
-                });
+                };
             }
         }
         else if (layer->getType() == tmx::Layer::Type::Tile) {
@@ -195,10 +195,6 @@ const TileInfo* Tilemap::GetTileInfo(uint32_t GID) const {
     return &tileLookup[GID];
 }
 
-ObjectData& Tilemap::GetObjectData(uint32_t ID) {
-    return objects.at(ID);
-}
-
 bool Tilemap::IsSolid(Int2 pos) const {
     return collisionMap.count(pos) != 0;
 }
@@ -269,8 +265,8 @@ void Tilemap::Render(int layer) const {
 
     glBindVertexArray(0);
 
-    for (const ObjectData &object : objects) {
-        DrawObject(object, layer);
+    for (const auto &pair : objects) {
+        DrawObject(pair.second, layer);
     }
 }
 
@@ -303,22 +299,22 @@ template<typename ObjT>
 void Tilemap::AddGameObject(ObjT gameObject, ObjectData objectData) {
     if constexpr (std::is_same_v<ObjT, Box>) {
         gameObject.ID = objects.size();
-        gameObjects.boxes.push_back(gameObject);
+        gameObjects.boxes[objectData.position] = gameObject;
     }
     else return;
 
-    objects.push_back(objectData);
+    objects[objectData.position] = objectData;
 }
 
 void Tilemap::AddGameObject(ObjectData objectData) {
     switch (objectData.type) {
     case ObjectType::Box:
-        gameObjects.boxes.push_back(Box(static_cast<uint32_t>(objects.size())));
+        gameObjects.boxes[objectData.position] = Box(static_cast<uint32_t>(objects.size() + 1));
         break;
     default: return;
     }
 
-    objects.push_back(objectData);
+    objects[objectData.position] = objectData;
 }
 
 void Tilemap::AddLevel(const Level& level, Int2 position) {

@@ -1,5 +1,6 @@
 #include <ui.h>
 #include <cmath>
+#include <Debug.h>
 
 void UIContext::BeginUI(Vec2 currentScreenSize, UI::MouseState currentFrameMouseState, UI::FlexDir rootFlexDir) {
     elementArena.clear();
@@ -243,10 +244,7 @@ void UIContext::LayoutElements() {
         element->position.x += element->style.margin.left;
         element->position.y += element->style.margin.top;
 
-        if (element->children.empty()) continue;
-        for (UI::Element* child : element->children) elementStack.push_back(child);
-
-        if (element->style.positioning.mode == UI::PositionMode::ABSOLUTE) {
+        if (element->style.positioning.mode == UI::PositionMode::ABSOLUTE || element->parent != nullptr) {
             switch (element->style.alignX) {
             case UI::AlignX::CENTER:
                 element->position.x += (element->parent->size.x - element->size.x) / 2.0f;
@@ -264,6 +262,8 @@ void UIContext::LayoutElements() {
                 break;
             }
         }
+        if (element->children.empty()) continue;
+        for (UI::Element* child : element->children) elementStack.push_back(child);
 
         bool isFlexRow = element->style.flexDir == UI::FlexDir::ROW;
 
@@ -308,16 +308,16 @@ void UIContext::ResolveCallbacks() {
         if (PointInRect(mouseState.mousePos, curr->position, curr->size, curr->style.roundness)) {
             hotID = curr->id;
             if (curr->onHover != nullptr) curr->onHover(*curr);
-            if (mouseState.leftDown) {
+            if (mouseState.left.down) {
                 activeID = curr->id;
                 if (curr->onActive != nullptr) curr->onActive(*curr);
             }
-            if (curr->onClick != nullptr && mouseState.leftReleased && activeID == curr->id) {
+            if (curr->onClick != nullptr && mouseState.left.released && activeID == curr->id) {
                 curr->onClick(*curr);
             }
         }
     }
-    if (mouseState.leftReleased) activeID = 0;
+    if (mouseState.left.released) activeID = 0;
 }
 
 void UIContext::Render(UI::Element* element) {

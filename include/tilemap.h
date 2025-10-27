@@ -34,9 +34,9 @@ private:
     std::vector<TileInfo> tileLookup;
     std::vector<TilesetLookup> tilesetLookup;
     std::unordered_set<Int2, Int2::Hash> collisionMap;
-    std::vector<ObjectData> objects;
 public:
     Int2 tileSize;
+    std::unordered_map<Int2, ObjectData, Int2::Hash> objects;
     GameObjects gameObjects;
 
     Tilemap() : tileSize(), shader() {}
@@ -47,7 +47,6 @@ public:
     std::optional<tmx::TileLayer::Tile> GetTile(Int2 pos, int layer) const;
     std::optional<Chunk> GetChunk(Int2 pos, int layer) const;
     const TileInfo* GetTileInfo(uint32_t GID) const;
-    ObjectData& GetObjectData(uint32_t ID);
     bool IsSolid(Int2 pos) const;
     bool CanPlaceLevel(const Level& level, Int2 position);
 

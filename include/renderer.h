@@ -48,6 +48,7 @@ extern glm::mat4 projection;
 
 void InitRenderer();
 Texture LoadTexture(const char* path);
+void ClearColor(Color color);
 void DrawRect(Vec2 position, Vec2 size, Color backgroundColor,
     float roundRadius = 0.0f, float borderWidth = 0.0f, Color borderColor = BLANK);
 void DrawTexturedRect(Vec2 position, Vec2 size, Texture texture, Vec2 baseUV = Vec2::zero, Vec2 uvOffset = Vec2::one, Color tint = WHITE);

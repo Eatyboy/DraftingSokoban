@@ -54,6 +54,11 @@ void InitRenderer() {
     rectShader = Shader("rect.vert", "rect.frag");
 }
 
+void ClearColor(Color color) {
+    glClearColor(color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+}
+
 Texture LoadTexture(const char* path) {
     unsigned int textureID;
     glGenTextures(1, &textureID);

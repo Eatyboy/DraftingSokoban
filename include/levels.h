@@ -7,8 +7,8 @@
 #include <unordered_set>
 #include <vector>
 
-/*
 enum class LevelExits {
+    None = 0,
     Top = 1 << 0,
     Bottom = 1 << 1,
     Left = 1 << 2,
@@ -18,7 +18,6 @@ enum class LevelExits {
 inline LevelExits operator|(LevelExits a, LevelExits b) {
     return static_cast<LevelExits>(static_cast<int>(a) | static_cast<int>(b));
 }
-*/
 
 struct Level {
     std::vector<ChunkLayer> layers;
@@ -26,6 +25,8 @@ struct Level {
     std::vector<ObjectData> objects;
 
     Int2 size = Int2::zero;
+
+    LevelExits exits = LevelExits::None;
 };
 
 Level* LoadLevel(const char* filename);

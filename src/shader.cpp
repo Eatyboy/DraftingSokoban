@@ -44,8 +44,8 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
         fragmentCode = fShaderStream.str();
     }
     catch (std::ifstream::failure e) {
-        debugLog("Failure: %s\n", e.what());
-        debugError("Failed to read shader file\n");
+        debugLog("Failure: %s", e.what());
+        debugError("Failed to read shader file");
     }
 
     const char* vShaderCode = vertexCode.c_str();
@@ -62,9 +62,9 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(vertex, infoLogSize, NULL, infoLog);
-        debugError("Vertex shader compilation for %s failed\n%s\n", vShaderFileName.c_str(), infoLog);
+        debugError("Vertex shader compilation for %s failed\n%s", vShaderFileName.c_str(), infoLog);
     } else {
-        debugLog("Vertex shader compiled for %s\n", vShaderFileName.c_str());
+        debugLog("Vertex shader compiled for %s", vShaderFileName.c_str());
     }
 
     fragment = glCreateShader(GL_FRAGMENT_SHADER);
@@ -74,9 +74,9 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(fragment, infoLogSize, NULL, infoLog);
-        debugError("Fragment shader compilation for %s failed\n%s\n", fShaderFileName.c_str(), infoLog);
+        debugError("Fragment shader compilation for %s failed\n%s", fShaderFileName.c_str(), infoLog);
     } else {
-        debugLog("Fragment shader compiled for %s\n", fShaderFileName.c_str());
+        debugLog("Fragment shader compiled for %s", fShaderFileName.c_str());
     }
 
     ID = glCreateProgram();
@@ -87,9 +87,9 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     glGetProgramiv(ID, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(ID, infoLogSize, NULL, infoLog);
-        debugError("Shader program linking failed\n%s\n", infoLog);
+        debugError("Shader program linking failed\n%s", infoLog);
     } else {
-        debugLog("Shader program linked\n");
+        debugLog("Shader program linked");
     }
 
     glDeleteShader(vertex);
@@ -102,7 +102,7 @@ void Shader::use() {
 
 int Shader::tryGetLoc(const std::string& name) const {
     int loc = glGetUniformLocation(ID, name.c_str());
-    if (loc == -1) debugError("Failed to get uniform location for \"%s\"\n", name.c_str());
+    if (loc == -1) debugError("Failed to get uniform location for \"%s\"", name.c_str());
     return loc;
 }
 

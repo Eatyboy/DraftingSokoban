@@ -107,7 +107,7 @@ Font* LoadFont(const char* path) {
         font->lineHeight = (float)face->height / 64.0f;
     }
 
-    debugLog("Loaded font %s\n", face->family_name);
+    debugLog("Loaded font %s", face->family_name);
     FT_Done_Face(face);
     return font;
 }

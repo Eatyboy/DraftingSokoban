@@ -32,19 +32,20 @@ struct Pushable {
 };
 
 struct Box {
-    uint32_t ID = UINT32_MAX;
-    Box(uint32_t initID) : ID(initID) {}
-
+    uint32_t ID = 0;
     Pushable pushData = {};
+
+    Box() : ID(0) {}
+    Box(uint32_t initID) : ID(initID) {}
 };
 
 struct GameObjects {
-    std::vector<Box> boxes;
+    std::unordered_map<Int2, Box, Int2::Hash> boxes;
 };
 
 ObjectType stringToObjectType(const std::string& str);
 void Push(Pushable& pushable, Int2 direction);
-void UpdatePushable(Pushable& pushable, ObjectData& object, float tick_t);
+void UpdatePushable(Tilemap& world, Pushable& pushable, ObjectData& object, float tick_t);
 static inline bool isPushable(ObjectType objType) {
     switch (objType) {
     case ObjectType::Box: return true;

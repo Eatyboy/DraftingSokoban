@@ -9,18 +9,14 @@
 #include <renderer.h>
 #include <algorithm>
 #include <text.h>
+#include <input.h>
 
 namespace UI {
     struct MouseState {
         Vec2 mousePos = { 0, 0 };
-        bool leftDown = false;
-        bool leftPressed = false;
-        bool leftUp = false;
-        bool leftReleased = false;
-        bool rightDown = false;
-        bool rightPressed = false;
-        bool rightUp = false;
-        bool rightReleased = false;
+        InputButtonState left;
+        InputButtonState right;
+        InputButtonState middle;
     };
 
     enum class PositionMode {
